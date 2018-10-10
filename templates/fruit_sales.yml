@@ -1,0 +1,41 @@
+facts:
+    when: date
+    where: location
+    who: customer
+    what: fruit
+    value:
+      - 0.50
+      - 4.25
+dimensions:
+  date:
+    datepart: day
+    start: 2018-05-01
+    end: 2018-05-30
+  location:
+      - Fred's Bodega
+        size: large
+      - Super Gas Plus
+        size: small
+      - Wowser Mart
+        size: mega
+      - Cozy Corner
+        size: medium
+  customer:
+      - Mary
+      - Steve
+      - Alex
+      - Fred
+      - Bob
+  fruit:
+      - Apple
+        color: red
+        size: small
+        cost: 0.25
+      - Watermelon
+        color: green
+        size: large
+        cost: 1.25
+      - Banana
+        color: yellow
+        size: medium
+        cost: 0.95
