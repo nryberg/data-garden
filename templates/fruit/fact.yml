@@ -1,0 +1,8 @@
+name: sales
+when:
+  start: 2018-05-01
+  end: 2018-07-31
+  period: days
+value:
+    name: sale_price
+    unit: dollar
