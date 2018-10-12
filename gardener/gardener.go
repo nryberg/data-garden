@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -9,6 +10,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func remove(s []int, i int) []int {
@@ -85,6 +88,29 @@ func printAttributes(attributes map[string]Attribute) {
 	fmt.Println(keys)
 }
 
+func buildSQLiteDB(filename string, attributes map[string]Attribute) (db *sql.DB, err error) {
+	keys := make([]string, 0, len(attributes))
+	for k := range attributes {
+		keys = append(keys, k)
+	}
+
+	tableName := keys[0]
+	cols := attributes[tableName].headers
+	fmt.Println(tableName)
+
+	database, err := sql.Open("sqlite3", filename)
+
+	sql := "CREATE TABLE " + tableName + "(id INTEGER PRIMARY KEY, "
+
+	for _, colName := range cols {
+		sql += colName
+		//// TODO:
+	}
+
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT)")
+	statement.Exec()
+	return database, err
+}
 func main() {
 
 	path := "../templates/fruit"
@@ -96,4 +122,9 @@ func main() {
 
 	printAttributes(attributes)
 
+	db, err := buildSQLiteDB("test.db", attributes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	db.Close()
 }
