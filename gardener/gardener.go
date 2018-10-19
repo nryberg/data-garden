@@ -118,24 +118,19 @@ func buildSQLiteDB(filename string, attributes map[string]Attribute) (db *sql.DB
 
 	log.Println("Dropping table just in case")
 	sql := "DROP TABLE IF EXISTS " + tableName
-	log.Println("Preparing SQL and executing")
+	log.Println("Preparing SQL and executing drop table")
 	statement, err := database.Prepare(sql)
 	if err != nil {
 		log.Fatal(err)
 	}
 	statement.Exec()
 
-	sql = "CREATE TABLE " + tableName + "(id INTEGER PRIMARY KEY "
+	sql = "CREATE TABLE " + tableName + "(id INTEGER PRIMARY KEY, "
 
-	for _, colName := range cols {
-		sql += ", "
-		sql += colName
-		//// TODO:
-	}
+	sql += strings.Join(cols, ",")
 
 	sql += ")"
 
-	fmt.Println(sql)
 	log.Println("Preparing SQL and executing")
 	statement, err = database.Prepare(sql)
 
@@ -149,8 +144,7 @@ func buildSQLiteDB(filename string, attributes map[string]Attribute) (db *sql.DB
 }
 
 func addDataSQLiteDB(tables map[string]Data, attributes map[string]Attribute, db *sql.DB) (err error) {
-	err = nil
-	fmt.Println("In add data ")
+	var sb strings.Builder
 
 	keys := make([]string, 0, len(attributes))
 	for k := range attributes {
@@ -159,19 +153,37 @@ func addDataSQLiteDB(tables map[string]Data, attributes map[string]Attribute, db
 
 	tableName := keys[0]
 
-	sql := "INSERT INTO TABLE " + tableName + " ("
+	sb.WriteString("INSERT INTO ")
+	sb.WriteString(tableName)
+	sb.WriteString(" (")
+	sb.WriteString(strings.Join(attributes[tableName].headers, ","))
 
-	cols := strings.Join(attributes[tableName].headers, ",")
-	fmt.Println(cols)
-	//sql += cols
+	var data Data
 
-	//var data Data
+	data = tables[tableName]
 
-	//data = tables[tableName]
-	//	fmt.Println(len(data.rows))
-	sql += ") VALUES ("
+	sb.WriteString(") VALUES (")
 
-	fmt.Println(sql)
+	prefixSQL := sb.String()
+
+	for _, row := range data.rows {
+		sb.Reset()
+		sb.WriteString(prefixSQL)
+		//TODO Figure out how to quote the strings so it inserts appropriately
+		sb.WriteString(strings.Join(row.cols, ","))
+		sb.WriteString(")")
+
+		log.Println(sb.String())
+
+		statement, errSQL := db.Prepare(sb.String())
+
+		if errSQL != nil {
+			log.Fatal(errSQL)
+		}
+
+		statement.Exec()
+
+	}
 
 	return err
 }
@@ -181,15 +193,15 @@ func main() {
 	path := "../templates/fruit"
 
 	attributes, data := loadFiles(path)
-	fmt.Println(len(attributes))
-	fmt.Println(len(data))
+
 	log.Println("Starting build db")
 	db, err := buildSQLiteDB("test.db", attributes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//err = addDataSQLiteDB(data, attributes, db)
+	log.Println("Going to add data ")
+	err = addDataSQLiteDB(data, attributes, db)
 	if err != nil {
 		log.Fatal(err)
 	}
