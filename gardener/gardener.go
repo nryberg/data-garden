@@ -39,6 +39,7 @@ type Row struct {
 }
 
 func loadFiles(path string) (map[string]Attribute, map[string]Data) {
+	log.Println("In Load Files")
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
@@ -86,8 +87,8 @@ func loadFiles(path string) (map[string]Attribute, map[string]Data) {
 
 		}
 	}
+	log.Println("Done with load files")
 	return attributes, tables
-
 }
 
 func printAttributes(attributes map[string]Attribute) {
@@ -107,11 +108,24 @@ func buildSQLiteDB(filename string, attributes map[string]Attribute) (db *sql.DB
 
 	tableName := keys[0]
 	cols := attributes[tableName].headers
-	fmt.Println(tableName)
 
+	log.Println("Opening DB")
 	database, err := sql.Open("sqlite3", filename)
 
-	sql := "CREATE TABLE " + tableName + "(id INTEGER PRIMARY KEY "
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Dropping table just in case")
+	sql := "DROP TABLE IF EXISTS " + tableName
+	log.Println("Preparing SQL and executing")
+	statement, err := database.Prepare(sql)
+	if err != nil {
+		log.Fatal(err)
+	}
+	statement.Exec()
+
+	sql = "CREATE TABLE " + tableName + "(id INTEGER PRIMARY KEY "
 
 	for _, colName := range cols {
 		sql += ", "
@@ -121,13 +135,22 @@ func buildSQLiteDB(filename string, attributes map[string]Attribute) (db *sql.DB
 
 	sql += ")"
 
-	statement, _ := database.Prepare(sql)
+	fmt.Println(sql)
+	log.Println("Preparing SQL and executing")
+	statement, err = database.Prepare(sql)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Executing statement")
 	statement.Exec()
 	return database, err
 }
 
 func addDataSQLiteDB(tables map[string]Data, attributes map[string]Attribute, db *sql.DB) (err error) {
 	err = nil
+	fmt.Println("In add data ")
 
 	keys := make([]string, 0, len(attributes))
 	for k := range attributes {
@@ -138,40 +161,35 @@ func addDataSQLiteDB(tables map[string]Data, attributes map[string]Attribute, db
 
 	sql := "INSERT INTO TABLE " + tableName + " ("
 
-	cols := attributes[tableName].headers
-	for _, colName := range cols {
-		sql += ", "
-		sql += colName
-		//// TODO:
-	}
+	cols := strings.Join(attributes[tableName].headers, ",")
+	fmt.Println(cols)
+	//sql += cols
 
-	var data Data
+	//var data Data
 
-	data = tables[tableName]
-	fmt.Println(len(data.rows))
+	//data = tables[tableName]
+	//	fmt.Println(len(data.rows))
 	sql += ") VALUES ("
 
 	fmt.Println(sql)
 
 	return err
 }
+
 func main() {
 
 	path := "../templates/fruit"
 
 	attributes, data := loadFiles(path)
-
 	fmt.Println(len(attributes))
 	fmt.Println(len(data))
-
-	printAttributes(attributes)
-
+	log.Println("Starting build db")
 	db, err := buildSQLiteDB("test.db", attributes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = addDataSQLiteDB(data, attributes, db)
+	//err = addDataSQLiteDB(data, attributes, db)
 	if err != nil {
 		log.Fatal(err)
 	}
