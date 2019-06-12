@@ -3,9 +3,7 @@ package main
 import (
 	"bufio"
 	"database/sql"
-	"encoding/csv"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -38,57 +36,45 @@ type Row struct {
 	cols []string
 }
 
-func loadFiles(path string) (map[string]Attribute, map[string]Data) {
+func loadFiles(path string) {
 	log.Println("In Load Files")
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
 	}
-	var attributes map[string]Attribute
-	attributes = make(map[string]Attribute)
-
-	var tables map[string]Data
-	tables = make(map[string]Data)
-
-	var rows []Row
-	var data Data
-	var row Row
-	var attribute Attribute
 
 	for _, file := range files {
 		fileName := file.Name()
-		extension := strings.Split(fileName, ".")[1]
-		attributeName := strings.Split(fileName, ".")[0]
+		extension := strings.Split(fileName, ".")[2]
+		purpose := strings.Split(fileName, ".")[1]
+		log.Println(purpose)
+
 		rowCount := 0
-		if extension == "csv" {
-			csvFile, _ := os.Open(path + "/" + file.Name())
-			reader := csv.NewReader(bufio.NewReader(csvFile))
-			for {
-				line, error := reader.Read()
-				if error == io.EOF {
-					break
-				} else if error != nil {
-					log.Fatal(error)
+		if extension == "txt" {
+
+			txtFile, _ := os.Open(path + "/" + file.Name())
+			scanner := bufio.NewScanner(txtFile)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if err := scanner.Err(); err != nil {
+					fmt.Fprintln(os.Stderr, "reading standard input:", err)
+				}
+
+				switch purpose {
+				case "dimension":
+					fmt.Println(line)
+				case "date":
+				case "measure":
+
 				}
 				rowCount++
-				attribute.rows = rowCount
-				if rowCount == 1 {
-					attribute.cols = len(line)
-					attribute.headers = line
-				} else {
-					row.cols = line
-					row.id = rowCount
-					rows = append(rows, row)
-				}
+
 			}
-			attributes[attributeName] = attribute
-			data.rows = rows
-			tables[attributeName] = data
 
 		}
 	}
 	log.Println("Done with load files")
-	return attributes, tables
+
 }
 
 func printAttributes(attributes map[string]Attribute) {
@@ -190,20 +176,20 @@ func addDataSQLiteDB(tables map[string]Data, attributes map[string]Attribute, db
 
 func main() {
 
-	path := "../templates/fruit"
+	path := "../schema/Cell_Phone_Data_Use"
 
-	attributes, data := loadFiles(path)
-
+	//attributes, data := loadFiles(path)
+	loadFiles(path)
 	log.Println("Starting build db")
-	db, err := buildSQLiteDB("test.db", attributes)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//db, err := buildSQLiteDB("test.db", attributes)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 
 	log.Println("Going to add data ")
-	err = addDataSQLiteDB(data, attributes, db)
-	if err != nil {
-		log.Fatal(err)
-	}
-	db.Close()
+	//err = addDataSQLiteDB(data, attributes, db)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//db.Close()
 }
